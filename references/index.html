@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>问题回答系统</title>
+    <style>
+        /* 全局样式 */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden; /* 防止页面超出时滚动 */
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-height: 90vh; /* 防止页面过高，提供可滚动的空间 */
+            overflow-y: auto; /* 如果内容超过高度，则出现滚动条 */
+        }
+
+        /* 输入框和按钮 */
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        /* 错误提示 */
+        #error {
+            color: red;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        /* 回应部分 */
+        #response {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            white-space: pre-line; /* 保留换行符 */
+            max-height: 70vh; /* 限制内容区的高度 */
+            overflow-y: auto; /* 超过高度时显示滚动条 */
+        }
+
+        .section-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 15px 0 5px 0;
+        }
+
+        .file-titles {
+            color: #3498db;
+            margin-top: 10px;
+        }
+
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+
+        /* 响应式布局 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 28px;
+            }
+
+            input[type="text"], button {
+                font-size: 14px;
+                padding: 10px;
+            }
+
+            #response {
+                max-height: 60vh; /* 调整小屏幕上的回应区域高度 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>营商政策问题回答系统</h1>
+        <p>请输入您的问题：</p>
+        <input type="text" id="question" placeholder="请输入问题...">
+        <button onclick="submitQuestion()">提交问题</button>
+
+        <div id="response"></div>
+        <div id="error"></div>
+    </div>
+
+    <script>
+        function submitQuestion() {
+            const question = document.getElementById('question').value.trim();
+            if (!question) {
+                document.getElementById('error').innerText = "问题不能为空，请输入一个问题。";
+                return;
+            }
+            document.getElementById('error').innerText = "";
+            document.getElementById('response').innerHTML = "正在生成回答，请稍等...";
+
+            fetch('http://localhost:5000/generate_answer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: question })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('response').innerHTML = `<div class="error">错误: ${data.error}</div>`;
+                } else {
+                    // 将纯文本转换为结构化 HTML
+                    const formattedAnswer = `
+                        <div class="section-title">📖 摘要内容</div>
+                        <p>${data.answer.title_summary || '没有摘要'}</p>
+
+                        <div class="section-title">🤖 大模型回答</div>
+                        <p>${data.answer.model_answer || '没有大模型回答'}</p>
+
+                        <div class="file-titles">📌 标题相关文件: ${data.answer.title_related || '无'}</div>
+                        <div class="file-titles">📚 内容相关文件: ${data.answer.content_related || '无'}</div>
+                    `;
+                    document.getElementById('response').innerHTML = formattedAnswer;
+                }
+            })
+            .catch(error => {
+                document.getElementById('response').innerHTML = "请求失败，请稍后再试。";
+                console.error("请求失败:", error);
+            });
+        }
+    </script>
+</body>
+</html>
